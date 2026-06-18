@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Controller</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* আপনার দেওয়া অনলাইন প্রিমিয়াম ব্যাকগ্রাউন্ড ইমেজ লিংক */
+            background: linear-gradient(rgba(11, 15, 25, 0.75), rgba(11, 15, 25, 0.8)), 
+                        url('http://googleusercontent.com/image_collection/image_retrieval/2573743724701907374_0') no-repeat center center fixed;
+            background-size: cover;
+            color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: rgba(17, 24, 39, 0.8); /* ট্রান্সপারেন্ট ব্যাকগ্রাউন্ড */
+            backdrop-filter: blur(10px); /* ব্যাকগ্রাউন্ড ইমেজ ব্লার ইফেক্ট */
+            -webkit-backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h2 {
+            margin-bottom: 15px;
+            color: #3b82f6;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        p {
+            color: #9ca3af;
+            font-size: 15px;
+            margin-bottom: 35px;
+            line-height: 1.5;
+        }
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        #status-box {
+            margin-top: 25px;
+            padding: 14px;
+            border-radius: 8px;
+            background-color: rgba(31, 41, 55, 0.9);
+            font-size: 14px;
+            color: #e5e7eb;
+            border-left: 5px solid #4b5563;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>System Control Panel</h2>
+    <p>নিচের কনফার্ম বাটনে ক্লিক করলে ব্যাকএন্ডে থাকা আপনার নির্দিষ্ট পাইথন কোডটি রান হওয়া শুরু করবে।</p>
+    
+    <button class="btn" id="confirmBtn">CONFIRM & RUN SYSTEM</button>
+    
+    <div id="status-box">Status: Idle (ক্লিক করার জন্য অপেক্ষা করা হচ্ছে)</div>
+</div>
+
+<script>
+    document.getElementById('confirmBtn').addEventListener('click', function() {
+        const statusBox = document.getElementById('status-box');
+        
+        statusBox.innerText = "Status: রিকোয়েস্ট পাঠানো হচ্ছে...";
+        statusBox.style.borderLeftColor = "#f59e0b"; // Yellow 
+
+        // ব্যাকএন্ডের /run-bot ইউআরএল-এ রিকোয়েস্ট পাঠানো হচ্ছে
+        fetch('/run-bot', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === "success") {
+                statusBox.innerText = "Status: " + data.message;
+                statusBox.style.borderLeftColor = "#10b981"; // Green
+            } else {
+                statusBox.innerText = "Status: এরর - " + data.message;
+                statusBox.style.borderLeftColor = "#ef4444"; // Red
+            }
+        })
+        .catch(error => {
+            statusBox.innerText = "Status: সার্ভারের সাথে কানেক্ট করা যাচ্ছে না!";
+            statusBox.style.borderLeftColor = "#ef4444"; // Red
+            console.error('Error:', error);
+        });
+    });
+</script>
+
+</body>
+</html>
